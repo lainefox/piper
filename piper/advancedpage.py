@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
+from gettext import gettext as _
 import sys
 from typing import Optional
 import gi
@@ -27,6 +28,7 @@ class AdvancedPage(Gtk.Box):
     rate_250: Gtk.RadioButton = Gtk.Template.Child()  # type: ignore
     rate_500: Gtk.RadioButton = Gtk.Template.Child()  # type: ignore
     rate_button_box: Gtk.ButtonBox = Gtk.Template.Child()  # type: ignore
+    rate_label: Gtk.Label = Gtk.Template.Child()  # type: ignore
 
     def __init__(
         self, device: RatbagdDevice, profile: RatbagdProfile, *args, **kwargs
@@ -58,13 +60,25 @@ class AdvancedPage(Gtk.Box):
         self._update_widget_debounce_time()
 
         are_report_rates_supported = (
-            profile.report_rate != 0 and len(profile.report_rates) != 0
+            profile.report_rate != 0 and len(profile.report_rates) > 1
         )
         self.rate_button_box.set_sensitive(are_report_rates_supported)
-        self.rate_125.set_sensitive(125 in profile.report_rates)
-        self.rate_250.set_sensitive(250 in profile.report_rates)
-        self.rate_500.set_sensitive(500 in profile.report_rates)
-        self.rate_1000.set_sensitive(1000 in profile.report_rates)
+        if are_report_rates_supported:
+            self.rate_125.set_sensitive(125 in profile.report_rates)
+            self.rate_250.set_sensitive(250 in profile.report_rates)
+            self.rate_500.set_sensitive(500 in profile.report_rates)
+            self.rate_1000.set_sensitive(1000 in profile.report_rates)
+        else:
+            self.rate_125.set_sensitive(True)
+            self.rate_250.set_sensitive(True)
+            self.rate_500.set_sensitive(True)
+            self.rate_1000.set_sensitive(True)
+
+        if profile.report_rate != 0 and len(profile.report_rates) <= 1:
+            hint = _("Controlled by physical hardware switch on mouse")
+            self.rate_button_box.set_tooltip_text(hint)
+            self.rate_label.set_tooltip_text(hint)
+            self.rate_label.set_text(_("Report rate (hardware switch)"))
 
         self._handler_125 = self.rate_125.connect(
             "toggled", self._on_report_rate_toggled, 125
@@ -158,28 +172,24 @@ class AdvancedPage(Gtk.Box):
         self._update_widget_report_rate()
 
     def _update_widget_report_rate(self) -> None:
-        with self.rate_125.handler_block(self._handler_125):
-            if self._profile.report_rate == 125:
+        with self.rate_125.handler_block(
+            self._handler_125
+        ), self.rate_250.handler_block(self._handler_250), self.rate_500.handler_block(
+            self._handler_500
+        ), self.rate_1000.handler_block(
+            self._handler_1000
+        ):
+            rate = self._profile.report_rate
+            if rate == 125:
                 self.rate_125.set_active(True)
-                return
-
-        with self.rate_250.handler_block(self._handler_250):
-            if self._profile.report_rate == 250:
+            elif rate == 250:
                 self.rate_250.set_active(True)
-                return
-
-        with self.rate_500.handler_block(self._handler_500):
-            if self._profile.report_rate == 500:
+            elif rate == 500:
                 self.rate_500.set_active(True)
-                return
-
-        with self.rate_1000.handler_block(self._handler_1000):
-            if self._profile.report_rate == 1000:
+            elif rate == 1000:
                 self.rate_1000.set_active(True)
-                return
-
-        # TODO: think how we should handle this.
-        print(
-            f"Profile was set to a weird report rate: {self._profile.report_rate}",
-            file=sys.stderr,
-        )
+            else:
+                print(
+                    f"Profile was set to a weird report rate: {self._profile.report_rate}",
+                    file=sys.stderr,
+                )
