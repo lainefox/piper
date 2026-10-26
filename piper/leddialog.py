@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
+from gettext import gettext as _
 from typing import Tuple
 
 from .ratbagd import RatbagdLed
@@ -64,10 +65,29 @@ class LedDialog(Gtk.Dialog):
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
         )
 
+        def add_speed_marks(widget):
+            if (
+                isinstance(widget, Gtk.Scale)
+                and widget.get_adjustment() == self.adjustment_effect_duration
+            ):
+                widget.clear_marks()
+                widget.add_mark(2000, Gtk.PositionType.BOTTOM, _("Fast"))
+                widget.add_mark(5000, Gtk.PositionType.BOTTOM, _("Medium"))
+                widget.add_mark(8000, Gtk.PositionType.BOTTOM, _("Slow"))
+            elif isinstance(widget, Gtk.Container):
+                widget.forall(add_speed_marks)
+
+        self.forall(add_speed_marks)
+
     @Gtk.Template.Callback("_on_change_value")
     def _on_change_value(
         self, scale: Gtk.Scale, scroll: Gtk.ScrollType, value: float
     ) -> bool:
+        if scale.get_adjustment() == self.adjustment_effect_duration:
+            presets = [2000, 5000, 8000]
+            nearest = min(presets, key=lambda p: abs(p - value))
+            scale.set_value(nearest)
+            return True
         # Work around the Gtk.Scale not snapping to its step increment.
         step = scale.get_adjustment().get_step_increment()
         scale.set_value(int(round(value / step) * step))
