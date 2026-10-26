@@ -38,6 +38,15 @@ class MousePerspective(Gtk.Overlay):
         self._device: Optional[RatbagdDevice] = None
         self._profile: Optional[RatbagdProfile] = None
         self._notification_error_timeout_id = 0
+        self.stack.connect(
+            "notify::visible-child-name", self._on_visible_child_name_changed
+        )
+
+    def _on_visible_child_name_changed(
+        self, stack: Gtk.Stack, pspec: GObject.ParamSpec
+    ) -> None:
+        if self._device:
+            self._device.resync()
 
     @GObject.Property
     def name(self) -> str:

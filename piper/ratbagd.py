@@ -426,6 +426,13 @@ class RatbagdDevice(_RatbagdDBus):
         """
         self._dbus_call("Commit", "")
 
+    def resync(self):
+        """Requests ratbagd to poll hardware and resynchronize device state."""
+        try:
+            self._dbus_call("Resync", "")
+        except Exception:
+            pass
+
 
 class RatbagdProfile(_RatbagdDBus):
     """Represents a ratbagd profile."""

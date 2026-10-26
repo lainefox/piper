@@ -70,6 +70,10 @@ class Window(Gtk.ApplicationWindow):
         ratbag.connect("device-removed", self._on_device_removed)
         ratbag.connect("daemon-disappeared", self._on_daemon_disappeared)
 
+        self._ratbag = ratbag
+        self.connect("focus-in-event", self._on_focus_in_event)
+        GLib.timeout_add_seconds(1, self._on_foreground_poll)
+
         if len(ratbag.devices) == 0:
             self._present_error_perspective(
                 _("Cannot find any devices"),
@@ -96,6 +100,18 @@ class Window(Gtk.ApplicationWindow):
                 if response in [Gtk.ResponseType.NO, Gtk.ResponseType.DELETE_EVENT]:
                     return Gdk.EVENT_STOP
         return Gdk.EVENT_PROPAGATE
+
+    def _on_focus_in_event(self, widget: Gtk.Widget, event: Gdk.EventFocus) -> bool:
+        if hasattr(self, "_ratbag") and self._ratbag:
+            for device in self._ratbag.devices:
+                device.resync()
+        return False
+
+    def _on_foreground_poll(self) -> bool:
+        if hasattr(self, "_ratbag") and self._ratbag:
+            for device in self._ratbag.devices:
+                device.resync()
+        return True
 
     def _on_daemon_disappeared(self, ratbag: Ratbagd) -> None:
         self._present_error_perspective(
