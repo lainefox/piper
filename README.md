@@ -18,6 +18,10 @@ a list of all known devices.  The device-specific protocols usually have to
 be reverse-engineered and the features available may vary to the
 manufacturer's advertized features.
 
+This fork includes dedicated vector SVG diagram and hardware mapping support
+for the **Aqirys TGA Wired** gaming mouse (Wings Tech OEM `usb:2ea8:2203`),
+providing button config and rgb light controls.
+
 Screenshots
 ===========
 
